@@ -23,7 +23,7 @@ func uploadImage(c *gin.Context) {
 
 	// gen object name with date
 	now := time.Now()
-	objectName := fmt.Sprintf("images/%d/%d/%d/%s", now.Year(), now.Month(), now.Day(), f.Filename)
+	objectName := fmt.Sprintf("images/%d/%d/%d/%d/%s", now.Year(), now.Month(), now.Day(), now.Unix(), f.Filename)
 	dst := fmt.Sprintf("/tmp/%s", f.Filename)
 	// Upload the file to specific dst.
 	err = c.SaveUploadedFile(f, dst)
