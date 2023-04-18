@@ -2,7 +2,9 @@ package object
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -12,6 +14,7 @@ import (
 var (
 	minioClient *minio.Client
 	bucket      string
+	cdnBaseURL  string
 )
 
 func Init() error {
@@ -19,6 +22,7 @@ func Init() error {
 	accessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("S3_ACCESS_KEY")
 	bucket = os.Getenv("S3_BUCKET")
+	cdnBaseURL = strings.TrimRight(os.Getenv("CDN_BASE_URL"), "/")
 	useSSL := true
 
 	var err error
@@ -49,5 +53,7 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 	}
 	slog.Info("upload success", "uploadInfo.key", uploadInfo.Key)
 
-	return &UploadResult{}, nil
+	return &UploadResult{
+		URL: fmt.Sprintf("%s/%s", cdnBathURL, uploadInfo.Key),
+	}, nil
 }
