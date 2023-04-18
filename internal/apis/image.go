@@ -12,7 +12,13 @@ import (
 
 func uploadImage(c *gin.Context) {
 	// single file
-	f, _ := c.FormFile("image")
+	f, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
 	slog.Info("upload file", "file", f.Filename, "size", f.Size)
 
 	// gen object name with date
@@ -20,7 +26,7 @@ func uploadImage(c *gin.Context) {
 	objectName := fmt.Sprintf("images/%d/%d/%d/%s", now.Year(), now.Month(), now.Day(), f.Filename)
 	dst := fmt.Sprintf("/tmp/%s", f.Filename)
 	// Upload the file to specific dst.
-	err := c.SaveUploadedFile(f, dst)
+	err = c.SaveUploadedFile(f, dst)
 	if err != nil {
 		c.JSON(500, gin.H{
 			"message": err.Error(),
