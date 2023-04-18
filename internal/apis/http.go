@@ -2,6 +2,8 @@ package apis
 
 import (
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -10,7 +12,14 @@ import (
 
 func Router() {
 	r := gin.Default()
-	r.Use(cors.Default())
+	// cors
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+
+	headers := os.Getenv("CORS_ALLOW_HEADERS")
+	config.AllowHeaders = strings.Split(headers, ",")
+	r.Use(cors.New(config))
+
 	r.Use(otelgin.Middleware("objr"))
 
 	r.GET("/ping", func(c *gin.Context) {
