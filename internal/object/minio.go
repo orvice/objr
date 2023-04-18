@@ -54,6 +54,6 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 	slog.Info("upload success", "uploadInfo.key", uploadInfo.Key)
 
 	return &UploadResult{
-		URL: fmt.Sprintf("%s/%s", cdnBathURL, uploadInfo.Key),
+		URL: fmt.Sprintf("%s/%s", cdnBaseURL, uploadInfo.Key),
 	}, nil
 }
