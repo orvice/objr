@@ -27,6 +27,16 @@ func Router() {
 			"message": "pong",
 		})
 	})
+
+	r.Use(auth)
 	r.POST("/v1/image", uploadImage)
 	_ = r.Run(":8080")
+}
+
+func auth(c *gin.Context) {
+	if c.Request.Header.Get("Token") == os.Getenv("AUTH_TOKEN") {
+		c.Next()
+	} else {
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
 }
