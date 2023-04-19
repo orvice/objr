@@ -46,7 +46,9 @@ func uploadImage(c *gin.Context) {
 		slog.Error("remove file error", "err", err)
 	}
 	c.JSON(200, gin.H{
-		"message": "success",
-		"url":     ret.URL,
+		"message":      "success",
+		"url":          ret.URL,
+		"file_mine":    f.Header,
+		"content_type": f.Header.Get("Content-Type"),
 	})
 }
