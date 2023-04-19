@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/exp/slog"
@@ -47,7 +48,16 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 	if err != nil {
 		return nil, err
 	}
-	uploadInfo, err := minioClient.PutObject(ctx, bucket, objectName, file, objectSize, minio.PutObjectOptions{})
+
+	var contentType string
+	mtype, err := mimetype.DetectFile(filePath)
+	if err == nil {
+		contentType = mtype.String()
+	}
+
+	uploadInfo, err := minioClient.PutObject(ctx, bucket, objectName, file, objectSize, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
 	if err != nil {
 		return nil, err
 	}
