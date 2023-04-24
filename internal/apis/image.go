@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/orvice/objr/internal/object"
 	"golang.org/x/exp/slog"
 )
@@ -23,7 +24,14 @@ func uploadImage(c *gin.Context) {
 
 	// gen object name with date
 	now := time.Now()
-	objectName := fmt.Sprintf("images/%d/%d/%d/%d/%s", now.Year(), now.Month(), now.Day(), now.Unix(), f.Filename)
+	id, err := uuid.NewUUID()
+	if err != nil {
+		c.JSON(500, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	objectName := fmt.Sprintf("images/%d/%d/%d/%s-%s", now.Year(), now.Month(), now.Day(), id.String(), f.Filename)
 	dst := fmt.Sprintf("/tmp/%s", f.Filename)
 	// Upload the file to specific dst.
 	err = c.SaveUploadedFile(f, dst)
