@@ -10,8 +10,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
-func Router() {
-	r := gin.Default()
+func Router(r *gin.Engine) {
 	// cors
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
@@ -30,7 +29,6 @@ func Router() {
 
 	r.Use(auth)
 	r.POST("/v1/image", uploadImage)
-	_ = r.Run(":8080")
 }
 
 func auth(c *gin.Context) {
