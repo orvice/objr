@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
-
+	"butterfly.orx.me/core"
+	"butterfly.orx.me/core/app"
 	"github.com/orvice/objr/internal/apis"
 	"github.com/orvice/objr/internal/object"
-	"github.com/weeon/weeon"
 )
 
 func main() {
@@ -14,8 +13,9 @@ func main() {
 		panic(err)
 	}
 
-	app := weeon.New(context.Background(), &weeon.Config{
-		HTTPRouter: apis.Router,
+	app := core.New(&app.Config{
+		Service: "echo",
+		Router:  apis.Router,
 	})
 	app.Run()
 }
