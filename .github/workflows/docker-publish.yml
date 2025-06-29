@@ -56,7 +56,7 @@ jobs:
       - id: docker_meta
         uses: docker/metadata-action@v5.7.0
         with:
-          images: ghcr.io/sigstore/sample-honk
+          images: ghcr.io/orvice/objr
           tags: type=sha,format=long
 
       - name: Build and Push container images
