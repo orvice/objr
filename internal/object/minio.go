@@ -4,33 +4,25 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"golang.org/x/exp/slog"
+
+	"github.com/orvice/objr/internal/conf"
 )
 
 var (
 	minioClient *minio.Client
-	bucket      string
-	cdnBaseURL  string
 )
 
 func Init() error {
-	endpoint := os.Getenv("S3_ENDPOINT")
-	accessKeyID := os.Getenv("S3_ACCESS_KEY_ID")
-	secretAccessKey := os.Getenv("S3_ACCESS_KEY")
-	bucket = os.Getenv("S3_BUCKET")
-	cdnBaseURL = strings.TrimRight(os.Getenv("CDN_BASE_URL"), "/")
-	useSSL := true
-
 	var err error
 	// Initialize minio client object.
-	minioClient, err = minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+	minioClient, err = minio.New(conf.Conf.S3.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(conf.Conf.S3.AccessKeyID, conf.Conf.S3.SecretAccessKey, ""),
+		Secure: conf.Conf.S3.UseSSL,
 	})
 	if err != nil {
 		return err
@@ -55,7 +47,7 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 		contentType = mtype.String()
 	}
 
-	uploadInfo, err := minioClient.PutObject(ctx, bucket, objectName, file, objectSize, minio.PutObjectOptions{
+	uploadInfo, err := minioClient.PutObject(ctx, conf.Conf.S3.Bucket, objectName, file, objectSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
@@ -64,6 +56,6 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 	slog.Info("upload success", "uploadInfo.key", uploadInfo.Key)
 
 	return &UploadResult{
-		URL: fmt.Sprintf("%s/%s", cdnBaseURL, uploadInfo.Key),
+		URL: fmt.Sprintf("%s/%s", conf.Conf.S3.CDNBaseURL, uploadInfo.Key),
 	}, nil
 }
