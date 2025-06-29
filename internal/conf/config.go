@@ -5,7 +5,9 @@ var (
 )
 
 type Config struct {
-	S3 S3Config `yaml:"s3"`
+	AuthToken  string   `yaml:"auth_token"`
+	CorsHeader []string `yaml:"cors_header"`
+	S3         S3Config `yaml:"s3"`
 }
 
 type S3Config struct {
