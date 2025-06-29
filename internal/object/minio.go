@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"butterfly.orx.me/core/log"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"golang.org/x/exp/slog"
-
 	"github.com/orvice/objr/internal/conf"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -36,8 +37,10 @@ type UploadResult struct {
 }
 
 func Upload(ctx context.Context, objectName string, filePath string, objectSize int64) (*UploadResult, error) {
+	logger := log.FromContext(ctx)
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0)
 	if err != nil {
+		logger.Error("open file failed", "error", err)
 		return nil, err
 	}
 
@@ -47,13 +50,18 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 		contentType = mtype.String()
 	}
 
+	start := time.Now()
+
 	uploadInfo, err := minioClient.PutObject(ctx, conf.Conf.S3.Bucket, objectName, file, objectSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
+		logger.Error("upload failed", "error", err)
 		return nil, err
 	}
-	slog.Info("upload success", "uploadInfo.key", uploadInfo.Key)
+	slog.Info("upload success",
+		"duration", time.Since(start),
+		"uploadInfo.key", uploadInfo.Key)
 
 	return &UploadResult{
 		URL: fmt.Sprintf("%s/%s", conf.Conf.S3.CDNBaseURL, uploadInfo.Key),
