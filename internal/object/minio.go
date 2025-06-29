@@ -19,8 +19,15 @@ var (
 )
 
 func Init() error {
+	logger := log.FromContext(context.Background())
 	var err error
 	// Initialize minio client object.
+	logger.Info("init minio client",
+		"endpoint", conf.Conf.S3.Endpoint,
+		"accessKeyID", conf.Conf.S3.AccessKeyID,
+		"secretAccessKey", conf.Conf.S3.SecretAccessKey,
+		"useSSL", conf.Conf.S3.UseSSL,
+	)
 	minioClient, err = minio.New(conf.Conf.S3.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(conf.Conf.S3.AccessKeyID, conf.Conf.S3.SecretAccessKey, ""),
 		Secure: conf.Conf.S3.UseSSL,
