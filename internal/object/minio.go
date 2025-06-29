@@ -52,11 +52,16 @@ func Upload(ctx context.Context, objectName string, filePath string, objectSize 
 
 	start := time.Now()
 
+	logger.Info("upload file",
+		"bucket", conf.Conf.S3.Bucket,
+		"objectName", objectName, "filePath", filePath, "objectSize", objectSize, "contentType", contentType)
+
 	uploadInfo, err := minioClient.PutObject(ctx, conf.Conf.S3.Bucket, objectName, file, objectSize, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
 	if err != nil {
-		logger.Error("upload failed", "error", err)
+		logger.Error("upload failed",
+			"error", err)
 		return nil, err
 	}
 	slog.Info("upload success",
