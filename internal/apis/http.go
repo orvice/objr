@@ -26,8 +26,9 @@ func Router(r *gin.Engine) {
 		})
 	})
 
-	r.Use(auth)
-	r.POST("/v1/image", uploadImage)
+	g := r.Group("/v1")
+	g.Use(auth)
+	g.POST("/image", uploadImage)
 }
 
 func auth(c *gin.Context) {
