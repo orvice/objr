@@ -1,8 +1,8 @@
 module github.com/orvice/objr
 
-go 1.23.8
+go 1.26.0
 
-toolchain go1.24.3
+toolchain go1.26.0
 
 require (
 	butterfly.orx.me/core v0.0.0-20250621160607-8cd37657d336
