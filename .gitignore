@@ -16,3 +16,6 @@ bin/
 # vendor/
 
 dist/
+.agents/
+.claude/
+.codex/

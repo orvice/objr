@@ -29,6 +29,7 @@ func Router(r *gin.Engine) {
 	g := r.Group("/v1")
 	g.Use(auth)
 	g.POST("/image", uploadImage)
+	g.POST("/app-package", uploadAppPackage)
 }
 
 func auth(c *gin.Context) {
