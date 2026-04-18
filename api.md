@@ -5,7 +5,7 @@ This document describes the HTTP endpoints currently provided by objr.
 ## Basics
 
 - Default response format: JSON
-- Authentication: all `/v1/*` endpoints require the `Token` request header
+- Authentication: all `/v1/*` endpoints and `/mcp` require the `Token` request header
 - Upload content type: `multipart/form-data`
 - Download URL: generated from `s3.cdn_base_url` + object key after a successful upload
 
@@ -46,6 +46,157 @@ curl "$BASE_URL/ping"
   "message": "pong"
 }
 ```
+
+## /mcp
+
+Streamable HTTP MCP endpoint for MCP-capable clients. The endpoint is served on the same HTTP server as the REST API and uses `github.com/modelcontextprotocol/go-sdk/mcp`.
+
+### Authentication
+
+Requires the `Token` request header on every MCP HTTP request.
+
+### Supported Methods
+
+The streamable HTTP handler is mounted for:
+
+- `GET /mcp`
+- `POST /mcp`
+- `DELETE /mcp`
+
+MCP clients should send normal streamable HTTP JSON-RPC traffic to `/mcp`. Upload tools accept file content as structured JSON arguments, not `multipart/form-data`.
+
+### MCP Client Configuration
+
+Configure the MCP client with endpoint:
+
+```text
+{BASE_URL}/mcp
+```
+
+and request header:
+
+```http
+Token: <auth_token>
+```
+
+### Tool: `ping`
+
+Reports service liveness.
+
+Input:
+
+```json
+{}
+```
+
+Output:
+
+```json
+{
+  "message": "pong"
+}
+```
+
+### Tool: `upload_image`
+
+Uploads an image to object storage and returns the generated CDN URL.
+
+Input fields:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `file_path` | string | Conditional | Server-readable local image path |
+| `content_base64` | string | Conditional | Base64-encoded image content |
+| `filename` | string | Conditional | Required with `content_base64`; optional override for `file_path` basename |
+
+Exactly one of `file_path` or `content_base64` must be provided.
+
+Input example with base64 content:
+
+```json
+{
+  "content_base64": "<base64 image bytes>",
+  "filename": "demo.png"
+}
+```
+
+Output:
+
+```json
+{
+  "message": "success",
+  "url": "https://cdn.example.com/images/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.png",
+  "object_key": "images/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.png",
+  "content_type": "image/png"
+}
+```
+
+### Tool: `upload_app_package`
+
+Uploads an Android APK or AAB and returns historical plus stable channel download metadata.
+
+Input fields:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `app_name` | string | Yes | Application name, sanitized for object key paths |
+| `version` | string | No | App version. Defaults to `nightly` when missing or blank |
+| `file_path` | string | Conditional | Server-readable local APK or AAB path |
+| `content_base64` | string | Conditional | Base64-encoded APK or AAB content |
+| `filename` | string | Conditional | Required with `content_base64`; optional override for `file_path` basename |
+
+Exactly one of `file_path` or `content_base64` must be provided. Filename must end with `.apk` or `.aab` case-insensitively.
+
+Input example with base64 content:
+
+```json
+{
+  "app_name": "demo-app",
+  "version": "1.2.3",
+  "content_base64": "<base64 package bytes>",
+  "filename": "demo.aab"
+}
+```
+
+Output for a nightly upload includes the fixed nightly URL:
+
+```json
+{
+  "message": "success",
+  "download_url": "https://cdn.example.com/apps/demo-app/nightly/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.apk",
+  "app_name": "demo-app",
+  "version": "nightly",
+  "object_key": "apps/demo-app/nightly/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.apk",
+  "nightly_download_url": "https://cdn.example.com/apps/demo-app/nightly/app.apk",
+  "nightly_object_key": "apps/demo-app/nightly/app.apk"
+}
+```
+
+Output for a non-nightly upload includes the fixed latest URL:
+
+```json
+{
+  "message": "success",
+  "download_url": "https://cdn.example.com/apps/demo-app/1.2.3/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.aab",
+  "app_name": "demo-app",
+  "version": "1.2.3",
+  "object_key": "apps/demo-app/1.2.3/2026/4/18/018f89e0-1234-5678-90ab-abcdefabcdef-demo.aab",
+  "latest_download_url": "https://cdn.example.com/apps/demo-app/latest/app.aab",
+  "latest_object_key": "apps/demo-app/latest/app.aab"
+}
+```
+
+### MCP Tool Errors
+
+Tool calls return MCP tool errors for invalid inputs, including:
+
+- Missing upload source
+- Both `file_path` and `content_base64` provided
+- Unreadable `file_path`
+- Invalid base64 content
+- Missing `filename` when using `content_base64`
+- Blank `app_name`
+- Unsupported app package filename extension
 
 ## POST /v1/image
 
