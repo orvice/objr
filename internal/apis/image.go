@@ -1,13 +1,11 @@
 package apis
 
 import (
-	"fmt"
+	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/orvice/objr/internal/object"
+	"github.com/orvice/objr/internal/upload"
 	"golang.org/x/exp/slog"
 )
 
@@ -22,17 +20,26 @@ func uploadImage(c *gin.Context) {
 	}
 	slog.Info("upload file", "file", f.Filename, "size", f.Size)
 
-	// gen object name with date
-	now := time.Now()
-	id, err := uuid.NewUUID()
+	tmp, err := os.CreateTemp("", "objr-image-*")
 	if err != nil {
-		c.JSON(500, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": err.Error(),
 		})
 		return
 	}
-	objectName := fmt.Sprintf("images/%d/%d/%d/%s-%s", now.Year(), now.Month(), now.Day(), id.String(), f.Filename)
-	dst := fmt.Sprintf("/tmp/%s", f.Filename)
+	dst := tmp.Name()
+	if err := tmp.Close(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	defer func() {
+		if err := os.Remove(dst); err != nil && !os.IsNotExist(err) {
+			slog.Error("remove file error", "err", err)
+		}
+	}()
+
 	// Upload the file to specific dst.
 	err = c.SaveUploadedFile(f, dst)
 	if err != nil {
@@ -41,17 +48,16 @@ func uploadImage(c *gin.Context) {
 		})
 		return
 	}
-	ret, err := object.Upload(c.Request.Context(), objectName, dst, f.Size)
+
+	ret, err := uploadService.UploadImage(c.Request.Context(), upload.Source{
+		FilePath: dst,
+		Filename: f.Filename,
+	})
 	if err != nil {
 		c.JSON(500, gin.H{
 			"message": err.Error(),
 		})
 		return
-	}
-	// clean dst
-	err = os.Remove(dst)
-	if err != nil {
-		slog.Error("remove file error", "err", err)
 	}
 	c.JSON(200, gin.H{
 		"message":      "success",

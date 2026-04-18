@@ -11,108 +11,12 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/orvice/objr/internal/conf"
 	"github.com/orvice/objr/internal/object"
+	"github.com/orvice/objr/internal/upload"
 )
-
-func TestNormalizeAppPackageVersion(t *testing.T) {
-	tests := []struct {
-		name    string
-		version string
-		want    string
-	}{
-		{name: "missing", version: "", want: defaultAppPackageVersion},
-		{name: "blank", version: " \t ", want: defaultAppPackageVersion},
-		{name: "provided", version: " 1.2.3 ", want: "1.2.3"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := normalizeAppPackageVersion(tt.version); got != tt.want {
-				t.Fatalf("normalizeAppPackageVersion() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestIsAllowedAppPackage(t *testing.T) {
-	tests := []struct {
-		name     string
-		filename string
-		want     bool
-	}{
-		{name: "apk", filename: "demo.apk", want: true},
-		{name: "aab", filename: "demo.aab", want: true},
-		{name: "uppercase", filename: "demo.APK", want: true},
-		{name: "unsupported", filename: "demo.zip", want: false},
-		{name: "path stripped", filename: `build\release\demo.aab`, want: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := isAllowedAppPackage(tt.filename); got != tt.want {
-				t.Fatalf("isAllowedAppPackage() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSanitizePathSegment(t *testing.T) {
-	tests := []struct {
-		name  string
-		value string
-		want  string
-	}{
-		{name: "trims and replaces separators", value: " demo app/../release ", want: "demo-app-..-release"},
-		{name: "keeps safe characters", value: "demo_app-1.2.3", want: "demo_app-1.2.3"},
-		{name: "blank after cleanup", value: " / ", want: ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := sanitizePathSegment(tt.value); got != tt.want {
-				t.Fatalf("sanitizePathSegment() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAppPackageObjectName(t *testing.T) {
-	id := uuid.MustParse("11111111-2222-3333-4444-555555555555")
-	now := time.Date(2026, time.April, 18, 10, 30, 0, 0, time.UTC)
-
-	got := appPackageObjectName("demo-app", "1.2.3", "demo.apk", now, id)
-	want := "apps/demo-app/1.2.3/2026/4/18/11111111-2222-3333-4444-555555555555-demo.apk"
-	if got != want {
-		t.Fatalf("appPackageObjectName() = %q, want %q", got, want)
-	}
-}
-
-func TestAppPackageAliasObjectName(t *testing.T) {
-	tests := []struct {
-		name     string
-		channel  string
-		filename string
-		want     string
-	}{
-		{name: "nightly apk", channel: "nightly", filename: "demo.apk", want: "apps/demo-app/nightly/app.apk"},
-		{name: "nightly aab", channel: "nightly", filename: "demo.aab", want: "apps/demo-app/nightly/app.aab"},
-		{name: "latest apk", channel: "latest", filename: "demo.apk", want: "apps/demo-app/latest/app.apk"},
-		{name: "latest uppercase", channel: "latest", filename: "demo.APK", want: "apps/demo-app/latest/app.apk"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := appPackageAliasObjectName("demo-app", tt.channel, tt.filename); got != tt.want {
-				t.Fatalf("appPackageAliasObjectName() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestUploadAppPackageSuccess(t *testing.T) {
 	router := newAppPackageTestRouter(t)
@@ -152,8 +56,8 @@ func TestUploadAppPackageSuccess(t *testing.T) {
 	if body["app_name"] != "demo-app" {
 		t.Fatalf("app_name = %q, want demo-app", body["app_name"])
 	}
-	if body["version"] != defaultAppPackageVersion {
-		t.Fatalf("version = %q, want %q", body["version"], defaultAppPackageVersion)
+	if body["version"] != upload.DefaultAppPackageVersion {
+		t.Fatalf("version = %q, want %q", body["version"], upload.DefaultAppPackageVersion)
 	}
 	if len(capturedObjectNames) != 2 {
 		t.Fatalf("upload calls = %d, want 2", len(capturedObjectNames))
@@ -395,12 +299,12 @@ func newAppPackageTestRouter(t *testing.T) *gin.Engine {
 	return router
 }
 
-func stubUploadObject(t *testing.T, fn appPackageUploader) {
+func stubUploadObject(t *testing.T, fn upload.Uploader) {
 	t.Helper()
-	original := uploadObject
-	uploadObject = fn
+	original := uploadService
+	uploadService = upload.NewServiceWithUploader(fn)
 	t.Cleanup(func() {
-		uploadObject = original
+		uploadService = original
 	})
 }
 
